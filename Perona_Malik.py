@@ -25,7 +25,7 @@ def anisotropic_diffusion(image_location, log_freq, iterations, b, lamb=0.01):
 
     result = [image]
 
-    for t in range(1, iterations + 1):
+    for t in range(iterations):
         I_North = image[:-2, 1:-1] - image[1:-1, 1:-1]
         I_South = image[2:, 1:-1] - image[1:-1, 1:-1]
         I_East = image[1:-1, 2:] - image[1:-1, 1:-1]
@@ -40,8 +40,8 @@ def anisotropic_diffusion(image_location, log_freq, iterations, b, lamb=0.01):
 
         image = new_image
 
-        if t % log_freq == 0:
-            result.append(image)
+        if (t+1) % log_freq == 0:
+            result.append(image.copy())
 
     return result
 
@@ -64,10 +64,7 @@ def PSNR(target, ref):
 
 
 def test():
-    log = anisotropic_diffusion("images/gaussian_noise_dog.jpg", log_freq=10, iterations=80, b=0.1, lamb=0.1)
-    ref = log[0]
-    for i in range(1, len(log)):
-        print(PSNR(log[i-1], log[i]))
+    log = anisotropic_diffusion("images/gaussian_noise_dog.jpg", log_freq=1, iterations=10, b=0.1, lamb=0.1)
 
 
 if __name__ == "__main__":
