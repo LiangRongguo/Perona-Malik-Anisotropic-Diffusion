@@ -357,12 +357,13 @@ def compare_k():
 
 def main():
     print("\nThis is the ECE6560 course project...")
-    print("\tName: \tRongguo Liang")
-    print("\tGT id: \trliang37\n")
+    print("\tName: \tRongguo Liang\n")
+
     add_noise()
     gaussian_low_pass_filter_and_edge_detection()
     PDE()
     compare_k()
+
     print("\ndone...")
 
 
