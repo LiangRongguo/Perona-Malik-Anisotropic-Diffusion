@@ -143,8 +143,8 @@ def edge_detection(image):
         [-1, -2, -1]
     ], np.int32)
 
-    image_x = ndimage.filters.convolve(image/255, edge_kernel_x)
-    image_y = ndimage.filters.convolve(image/255, edge_kernel_y)
+    image_x = ndimage.filters.convolve(image / 255, edge_kernel_x)
+    image_y = ndimage.filters.convolve(image / 255, edge_kernel_y)
     image_edge = np.hypot(image_x, image_y)
 
     return image_edge
@@ -162,7 +162,8 @@ def PDE():
 
     print("applying PDE with Gaussian noise image...")
 
-    log_Gaussian_PDE = anisotropic_diffusion(GAUSSIAN_IMAGE, log_freq=iterations/(num_col-1), iterations=iterations, b=b_gaussian, lamb=lamb_gaussian)
+    log_Gaussian_PDE = anisotropic_diffusion(GAUSSIAN_IMAGE, log_freq=iterations / (num_col - 1), iterations=iterations,
+                                             b=b_gaussian, lamb=lamb_gaussian)
 
     figure = plt.figure()
     plt.title("PDE on Gaussian Noise Image with k = " + str(b_gaussian))
@@ -171,7 +172,7 @@ def PDE():
 
     for i in range(len(log_Gaussian_PDE)):
         ax1 = figure.add_subplot(2, num_col, i + 1)
-        plt.title("t="+str(iterations/(num_col-1) * i))
+        plt.title("t=" + str(iterations / (num_col - 1) * i))
         plt.axis('off')
         ax1.imshow(log_Gaussian_PDE[i])
 
@@ -188,7 +189,10 @@ def PDE():
 
     print("applying PDE with Salt & Pepper noise image (k = 0.1)...")
 
-    log_SA_PDE = anisotropic_diffusion(SALT_PEPPER_IMAGE, log_freq=iterations/(num_col-1), iterations=iterations, b=b_sp, lamb=lamb_sp)
+    iterations_sp = 160
+
+    log_SA_PDE = anisotropic_diffusion(SALT_PEPPER_IMAGE, log_freq=iterations_sp / (num_col - 1), iterations=iterations_sp,
+                                       b=b_sp, lamb=lamb_sp)
 
     figure = plt.figure()
     plt.title("PDE on Salt & Pepper Noise Image with k = " + str(b_sp))
@@ -197,7 +201,7 @@ def PDE():
 
     for i in range(len(log_SA_PDE)):
         ax1 = figure.add_subplot(2, num_col, i + 1)
-        plt.title("t="+str(iterations/(num_col-1) * i))
+        plt.title("t=" + str(iterations_sp / (num_col - 1) * i))
         plt.axis('off')
         ax1.imshow(log_SA_PDE[i])
 
@@ -215,7 +219,7 @@ def PDE():
     print("applying PDE with Salt & Pepper noise image (k = 0.2)...")
 
     log_SA_PDE1 = anisotropic_diffusion(SALT_PEPPER_IMAGE, log_freq=iterations / (num_col - 1), iterations=iterations,
-                                       b=b_sp1, lamb=lamb_sp)
+                                        b=b_sp1, lamb=lamb_sp)
 
     figure = plt.figure()
     plt.title("PDE on Salt & Pepper Noise Image with k = " + str(b_sp1))
@@ -259,22 +263,23 @@ def PDE():
     print("\tdone with calculating the PSNR result for Salt & Pepper noise with k = 0.2")
 
     figure = plt.figure()
-    x = np.arange(0, iterations + iterations/(num_col-1), iterations/(num_col-1))
+    x = np.arange(0, iterations + iterations / (num_col - 1), iterations / (num_col - 1))
+    x1 = np.arange(0, iterations_sp + iterations_sp / (num_col - 1), iterations_sp / (num_col - 1))
 
     ax1 = figure.add_subplot(3, 1, 1)
-    ax1.plot(x, PSNR_Gaussian, "*-")
+    ax1.plot(x, PSNR_Gaussian, ".-")
     plt.xlabel("Iterations")
     plt.ylabel("PSNR/dB")
     plt.title("PSNR for Gaussian Noise image with k = 0.1")
 
     ax2 = figure.add_subplot(3, 1, 2)
-    ax2.plot(x, PSNR_SP, "*-")
+    ax2.plot(x1, PSNR_SP, ".-")
     plt.xlabel("Iterations")
     plt.ylabel("PSNR/dB")
     plt.title("PSNR for Salt & Pepper Noise image with k = 0.1")
 
     ax3 = figure.add_subplot(3, 1, 3)
-    ax3.plot(x, PSNR_SP, "*-")
+    ax3.plot(x1, PSNR_SP, ".-")
     plt.xlabel("Iterations")
     plt.ylabel("PSNR/dB")
     plt.title("PSNR for Salt & Pepper Noise image with k = 0.2")
@@ -288,18 +293,79 @@ def PDE():
     print("\t\t", PSNR_SP)
     print("\tPSNR for Salt & Pepper with k = 0.2 in iterations", x, "is: ")
     print("\t\t", PSNR_SP1)
+
+    plt.savefig("images/PDE_PSNR.jpg")
+    plt.show()
+
+    print("")
+
+
+def compare_k():
+    print("comparing the effects of different k...")
+
+    iterations_gaussian = 40
+    iterations_sp = 100
+    b = np.arange(0.05, 0.61, 0.01)
+    lamb = 0.1
+    b_gaussian = [0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4]
+    b_sp = [0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55]
+
+    result_image_gaussian = []
+    result_psnr_gaussian = []
+
+    result_image_sp = []
+    result_psnr_sp = []
+
+    original_image = np.array(Image.open(ORIGINAL_IMAGE).convert('L')) / 255
+
+    for each_b in b:
+        log = anisotropic_diffusion(GAUSSIAN_IMAGE, log_freq=iterations_gaussian,
+                                    iterations=iterations_gaussian,
+                                    b=each_b, lamb=lamb)
+        result_image_gaussian.append(log[-1])
+        result_psnr_gaussian.append(PSNR(log[-1], original_image))
+
+        log = anisotropic_diffusion(SALT_PEPPER_IMAGE, log_freq=iterations_sp,
+                                    iterations=iterations_sp,
+                                    b=each_b, lamb=lamb)
+        result_image_sp.append(log[-1])
+        result_psnr_sp.append(PSNR(log[-1], original_image))
+
+    print("\tPSNR for gaussian:", result_psnr_gaussian)
+    print("\tPSNR for salt & pepper", result_psnr_sp)
+
+    figure = plt.figure()
+    plt.axis('off')
+    plt.gray()
+
+    ax1 = figure.add_subplot(2, 1, 1)
+    ax1.plot(b, result_psnr_gaussian, ".-")
+    plt.xlabel("k")
+    plt.ylabel("PSNR/dB")
+    plt.title("PSNR for Gaussian Noise image with 40 iterations")
+
+    ax2 = figure.add_subplot(2, 1, 2)
+    ax2.plot(b, result_psnr_sp, ".-")
+    plt.xlabel("k")
+    plt.ylabel("PSNR/dB")
+    plt.title("PSNR for Salt & Pepper Noise image with 100 iterations")
+
+    figure.tight_layout()
+    plt.savefig("images/PDE_k.jpg")
     plt.show()
 
 
 def main():
-    add_noise()
-    gaussian_low_pass_filter_and_edge_detection()
-    PDE()
-
-
-if __name__ == "__main__":
     print("\nThis is the ECE6560 course project...")
     print("\tName: \tRongguo Liang")
     print("\tGT id: \trliang37\n")
+    add_noise()
+    gaussian_low_pass_filter_and_edge_detection()
+    PDE()
+    compare_k()
+    print("\ndone...")
 
+
+if __name__ == "__main__":
     main()
+
