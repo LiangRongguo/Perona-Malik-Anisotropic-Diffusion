@@ -2,21 +2,22 @@ import numpy as np
 from PIL import Image
 import math
 
-def f(lamb, b):
+
+def coefficient(I, k):
     """
-    :param lamb:
-    :param b:
+    :param I:
+    :param k:
     :return:
     """
-    return 1 / (1 + ((lamb / b) ** 2))
+    return 1 / (1 + ((I / k) ** 2))
 
 
-def anisotropic_diffusion(image_location, log_freq, iterations, b, lamb=0.01):
+def anisotropic_diffusion(image_location, log_freq, iterations, k, lamb=0.01):
     """
     :param image_location:
     :param log_freq:
     :param iterations:
-    :param b:
+    :param k:
     :param lamb:
     :return:
     """
@@ -32,10 +33,10 @@ def anisotropic_diffusion(image_location, log_freq, iterations, b, lamb=0.01):
         I_West = image[1:-1, :-2] - image[1:-1, 1:-1]
 
         new_image[1:-1, 1:-1] = image[1:-1, 1:-1] + lamb * (
-            f(I_North, b) * I_North +
-            f(I_South, b) * I_South +
-            f(I_East, b) * I_East +
-            f(I_West, b) * I_West
+            coefficient(I_North, k) * I_North +
+            coefficient(I_South, k) * I_South +
+            coefficient(I_East, k) * I_East +
+            coefficient(I_West, k) * I_West
         )
 
         image = new_image
@@ -63,8 +64,36 @@ def PSNR(target, ref):
     return 20 * math.log10(max_val / math.sqrt(mse))
 
 
+def PSNR_split(target, ref, original_pde_result):
+    """
+    compute the PSNR between result image and original image
+    :param target: type float64
+    :param ref: type float64
+    :param original_pde_result:
+    :return:
+    """
+    h = target.shape[0]
+    w = target.shape[1]
+
+    target_copy = target.copy()
+
+    for i in range(h):
+        for j in range(w):
+            if target_copy[i, j] == 0:
+                target_copy[i, j] = original_pde_result[i, j]
+
+    mse = np.mean((target_copy - ref) ** 2)
+
+    if mse == 0:
+        return 100
+
+    max_val = 1.0
+
+    return 20 * math.log10(max_val / math.sqrt(mse))
+
+
 def test():
-    log = anisotropic_diffusion("images/gaussian_noise_dog.jpg", log_freq=1, iterations=10, b=0.1, lamb=0.1)
+    anisotropic_diffusion("images/gaussian_noise_dog.jpg", log_freq=1, iterations=10, k=0.1, lamb=0.1)
 
 
 if __name__ == "__main__":

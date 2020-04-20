@@ -154,19 +154,19 @@ def PDE():
     # parameters
     num_col = 5
     iterations = 80
-    b_gaussian = 0.1
+    k_gaussian = 0.1
     lamb_gaussian = 0.1
-    b_sp = 0.1
+    k_sp = 0.1
     lamb_sp = 0.1
-    b_sp1 = 0.2
+    k_sp1 = 0.2
 
     print("applying PDE with Gaussian noise image...")
 
     log_Gaussian_PDE = anisotropic_diffusion(GAUSSIAN_IMAGE, log_freq=iterations / (num_col - 1), iterations=iterations,
-                                             b=b_gaussian, lamb=lamb_gaussian)
+                                             k=k_gaussian, lamb=lamb_gaussian)
 
     figure = plt.figure()
-    plt.title("PDE on Gaussian Noise Image with k = " + str(b_gaussian))
+    plt.title("PDE on Gaussian Noise Image with k = " + str(k_gaussian))
     plt.axis('off')
     plt.gray()
 
@@ -191,11 +191,12 @@ def PDE():
 
     iterations_sp = 160
 
-    log_SA_PDE = anisotropic_diffusion(SALT_PEPPER_IMAGE, log_freq=iterations_sp / (num_col - 1), iterations=iterations_sp,
-                                       b=b_sp, lamb=lamb_sp)
+    log_SA_PDE = anisotropic_diffusion(SALT_PEPPER_IMAGE, log_freq=iterations_sp / (num_col - 1),
+                                       iterations=iterations_sp,
+                                       k=k_sp, lamb=lamb_sp)
 
     figure = plt.figure()
-    plt.title("PDE on Salt & Pepper Noise Image with k = " + str(b_sp))
+    plt.title("PDE on Salt & Pepper Noise Image with k = " + str(k_sp))
     plt.axis('off')
     plt.gray()
 
@@ -219,10 +220,10 @@ def PDE():
     print("applying PDE with Salt & Pepper noise image (k = 0.2)...")
 
     log_SA_PDE1 = anisotropic_diffusion(SALT_PEPPER_IMAGE, log_freq=iterations / (num_col - 1), iterations=iterations,
-                                        b=b_sp1, lamb=lamb_sp)
+                                        k=k_sp1, lamb=lamb_sp)
 
     figure = plt.figure()
-    plt.title("PDE on Salt & Pepper Noise Image with k = " + str(b_sp1))
+    plt.title("PDE on Salt & Pepper Noise Image with k = " + str(k_sp1))
     plt.axis('off')
     plt.gray()
 
@@ -305,10 +306,8 @@ def compare_k():
 
     iterations_gaussian = 40
     iterations_sp = 100
-    b = np.arange(0.05, 0.61, 0.01)
+    k = np.arange(0.05, 0.61, 0.01)
     lamb = 0.1
-    b_gaussian = [0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4]
-    b_sp = [0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55]
 
     result_image_gaussian = []
     result_psnr_gaussian = []
@@ -318,16 +317,16 @@ def compare_k():
 
     original_image = np.array(Image.open(ORIGINAL_IMAGE).convert('L')) / 255
 
-    for each_b in b:
+    for each_k in k:
         log = anisotropic_diffusion(GAUSSIAN_IMAGE, log_freq=iterations_gaussian,
                                     iterations=iterations_gaussian,
-                                    b=each_b, lamb=lamb)
+                                    k=each_k, lamb=lamb)
         result_image_gaussian.append(log[-1])
         result_psnr_gaussian.append(PSNR(log[-1], original_image))
 
         log = anisotropic_diffusion(SALT_PEPPER_IMAGE, log_freq=iterations_sp,
                                     iterations=iterations_sp,
-                                    b=each_b, lamb=lamb)
+                                    k=each_k, lamb=lamb)
         result_image_sp.append(log[-1])
         result_psnr_sp.append(PSNR(log[-1], original_image))
 
@@ -339,19 +338,158 @@ def compare_k():
     plt.gray()
 
     ax1 = figure.add_subplot(2, 1, 1)
-    ax1.plot(b, result_psnr_gaussian, ".-")
+    ax1.plot(k, result_psnr_gaussian, ".-")
     plt.xlabel("k")
     plt.ylabel("PSNR/dB")
     plt.title("PSNR for Gaussian Noise image with 40 iterations")
 
     ax2 = figure.add_subplot(2, 1, 2)
-    ax2.plot(b, result_psnr_sp, ".-")
+    ax2.plot(k, result_psnr_sp, ".-")
     plt.xlabel("k")
     plt.ylabel("PSNR/dB")
     plt.title("PSNR for Salt & Pepper Noise image with 100 iterations")
 
     figure.tight_layout()
     plt.savefig("images/PDE_k.jpg")
+    plt.show()
+
+    print("")
+
+
+def split_PDE():
+    print("splitting the image to apply PDE respectively...")
+
+    original_image = np.array(Image.open(ORIGINAL_IMAGE).convert('L')) / 255
+
+    gaussian_image = np.array(Image.open(GAUSSIAN_IMAGE).convert('L')) / 255
+    gaussian_pde_result = anisotropic_diffusion(GAUSSIAN_IMAGE, log_freq=40, iterations=40, k=0.1, lamb=0.1)[-1]
+
+    salt_pepper_image = np.array(Image.open(SALT_PEPPER_IMAGE).convert('L')) / 255
+    salt_pepper_pde_result = anisotropic_diffusion(GAUSSIAN_IMAGE, log_freq=100, iterations=100, k=0.1, lamb=0.1)[-1]
+
+    gaussian_pde_result_2x2 = np.zeros(original_image.shape, np.float64)
+    gaussian_pde_result_4x4 = np.zeros(original_image.shape, np.float64)
+    salt_pepper_pde_result_2x2 = np.zeros(original_image.shape, np.float64)
+    salt_pepper_pde_result_4x4 = np.zeros(original_image.shape, np.float64)
+
+    h = original_image.shape[0]
+    w = original_image.shape[1]
+
+    div = 2
+    unit_h = int(h / div)
+    unit_w = int(w / div)
+
+    for i in range(div):
+        for j in range(div):
+            gaussian_part = gaussian_image[i * unit_h: (i + 1) * unit_h, j * unit_w: (j + 1) * unit_w]
+            gaussian_filename = "./images/split" + str(div) + "x" + str(div) + "/gaussian" + str(i) + str(j) + ".jpg"
+            imageio.imwrite(gaussian_filename, np.uint8(gaussian_part * 255))
+            gaussian_pde_result_2x2[i * unit_h: (i + 1) * unit_h, j * unit_w: (j + 1) * unit_w] = \
+                anisotropic_diffusion(gaussian_filename, log_freq=40, iterations=40, k=0.1, lamb=0.1)[-1]
+
+            salt_pepper_part = salt_pepper_image[i * unit_h: (i + 1) * unit_h, j * unit_w: (j + 1) * unit_w]
+            salt_pepper_filename = "./images/split" + str(div) + "x" + str(div) + "/salt_pepper" + str(i) + str(
+                j) + ".jpg"
+            imageio.imwrite(salt_pepper_filename, np.uint8(salt_pepper_part * 255))
+            salt_pepper_pde_result_2x2[i * unit_h: (i + 1) * unit_h, j * unit_w: (j + 1) * unit_w] = \
+                anisotropic_diffusion(salt_pepper_filename, log_freq=100, iterations=100, k=0.1, lamb=0.1)[-1]
+
+    div = 4
+    unit_h = int(h / div)
+    unit_w = int(w / div)
+
+    for i in range(div):
+        for j in range(div):
+            gaussian_part = gaussian_image[i * unit_h: (i + 1) * unit_h, j * unit_w: (j + 1) * unit_w]
+            gaussian_filename = "./images/split" + str(div) + "x" + str(div) + "/gaussian" + str(i) + str(j) + ".jpg"
+            imageio.imwrite(gaussian_filename, np.uint8(gaussian_part * 255))
+            gaussian_pde_result_4x4[i * unit_h: (i + 1) * unit_h, j * unit_w: (j + 1) * unit_w] = \
+                anisotropic_diffusion(gaussian_filename, log_freq=40, iterations=40, k=0.1, lamb=0.1)[-1]
+
+            salt_pepper_part = salt_pepper_image[i * unit_h: (i + 1) * unit_h, j * unit_w: (j + 1) * unit_w]
+            salt_pepper_filename = "./images/split" + str(div) + "x" + str(div) + "/salt_pepper" + str(i) + str(
+                j) + ".jpg"
+            imageio.imwrite(salt_pepper_filename, np.uint8(salt_pepper_part * 255))
+            salt_pepper_pde_result_4x4[i * unit_h: (i + 1) * unit_h, j * unit_w: (j + 1) * unit_w] = \
+                anisotropic_diffusion(salt_pepper_filename, log_freq=100, iterations=100, k=0.1, lamb=0.1)[-1]
+
+    psnr_gaussian = round(PSNR(gaussian_image, original_image), 4)
+    psnr_gaussian_1x1 = round(PSNR(gaussian_pde_result, original_image), 4)
+    psnr_gaussian_2x2 = round(PSNR_split(gaussian_pde_result_2x2, original_image, gaussian_pde_result), 4)
+    psnr_gaussian_4x4 = round(PSNR_split(gaussian_pde_result_4x4, original_image, gaussian_pde_result), 4)
+
+    psnr_salt_pepper = round(PSNR(salt_pepper_image, original_image), 4)
+    psnr_salt_pepper_1x1 = round(PSNR(salt_pepper_pde_result, original_image), 4)
+    psnr_salt_pepper_2x2 = round(PSNR_split(salt_pepper_pde_result_2x2, original_image, salt_pepper_pde_result), 4)
+    psnr_salt_pepper_4x4 = round(PSNR_split(salt_pepper_pde_result_4x4, original_image, salt_pepper_pde_result), 4)
+
+    print("\tPSNR for gaussian noise image:", str(psnr_gaussian))
+    print("\tPSNR for PDE on gaussian noise image with split 1x1:", str(psnr_gaussian_1x1))
+    print("\tPSNR for PDE on gaussian noise image with split 2x2:", str(psnr_gaussian_2x2))
+    print("\tPSNR for PDE on gaussian noise image with split 4x4:", str(psnr_gaussian_4x4))
+
+    print("")
+
+    print("\tPSNR for salt & pepper noise image:", str(psnr_salt_pepper))
+    print("\tPSNR for PDE on salt & pepper noise image with split 1x1:", str(psnr_salt_pepper_1x1))
+    print("\tPSNR for PDE on salt & pepper noise image with split 2x2:", str(psnr_salt_pepper_2x2))
+    print("\tPSNR for PDE on salt & pepper noise image with split 4x4:", str(psnr_salt_pepper_4x4))
+
+    figure = plt.figure()
+    plt.title("PSNR for different split")
+    plt.axis('off')
+    plt.gray()
+
+    ax1 = figure.add_subplot(2, 4, 1)
+    plt.title("Gaussian")
+    plt.text(166., 320., "PSNR: " + str(round(psnr_gaussian, 2)), size=10, ha="center", va="top", )
+    plt.axis('off')
+    ax1.imshow(gaussian_image)
+
+    ax2 = figure.add_subplot(2, 4, 2)
+    plt.title("1 x 1")
+    plt.text(166., 320., "PSNR: " + str(round(psnr_gaussian_1x1, 2)), size=10, ha="center", va="top",)
+    plt.axis('off')
+    ax2.imshow(gaussian_pde_result)
+
+    ax3 = figure.add_subplot(2, 4, 3)
+    plt.title("2 x 2")
+    plt.text(166., 320., "PSNR: " + str(round(psnr_gaussian_2x2, 2)), size=10, ha="center", va="top", )
+    plt.axis('off')
+    ax3.imshow(gaussian_pde_result_2x2)
+
+    ax4 = figure.add_subplot(2, 4, 4)
+    plt.title(psnr_gaussian_4x4)
+    plt.title("4 x 4")
+    plt.text(166., 320., "PSNR: " + str(round(psnr_gaussian_4x4, 2)), size=10, ha="center", va="top", )
+    plt.axis('off')
+    ax4.imshow(gaussian_pde_result_4x4)
+
+    ax5 = figure.add_subplot(2, 4, 5)
+    plt.title("Salt & Pepper")
+    plt.text(166., 320., "PSNR: " + str(round(psnr_salt_pepper, 2)), size=10, ha="center", va="top", )
+    plt.axis('off')
+    ax5.imshow(salt_pepper_image)
+
+    ax6 = figure.add_subplot(2, 4, 6)
+    plt.title("1 x 1")
+    plt.text(166., 320., "PSNR: " + str(round(psnr_salt_pepper_1x1, 2)), size=10, ha="center", va="top", )
+    plt.axis('off')
+    ax6.imshow(salt_pepper_pde_result)
+
+    ax7 = figure.add_subplot(2, 4, 7)
+    plt.title("2 x 2")
+    plt.text(166., 320., "PSNR: " + str(round(psnr_salt_pepper_2x2, 2)), size=10, ha="center", va="top", )
+    plt.axis('off')
+    ax7.imshow(salt_pepper_pde_result_2x2)
+
+    ax8 = figure.add_subplot(2, 4, 8)
+    plt.title("4 x 4")
+    plt.text(166., 320., "PSNR: " + str(round(psnr_salt_pepper_4x4, 2)), size=10, ha="center", va="top", )
+    plt.axis('off')
+    ax8.imshow(salt_pepper_pde_result_4x4)
+
+    plt.savefig("./images/split_PDE.jpg")
     plt.show()
 
 
@@ -363,10 +501,10 @@ def main():
     gaussian_low_pass_filter_and_edge_detection()
     PDE()
     compare_k()
+    split_PDE()
 
     print("\ndone...")
 
 
 if __name__ == "__main__":
     main()
-
