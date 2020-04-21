@@ -219,7 +219,7 @@ def PDE():
 
     print("applying PDE with Salt & Pepper noise image (k = 0.2)...")
 
-    log_SA_PDE1 = anisotropic_diffusion(SALT_PEPPER_IMAGE, log_freq=iterations / (num_col - 1), iterations=iterations,
+    log_SA_PDE1 = anisotropic_diffusion(SALT_PEPPER_IMAGE, log_freq=iterations_sp / (num_col - 1), iterations=iterations_sp,
                                         k=k_sp1, lamb=lamb_sp)
 
     figure = plt.figure()
@@ -229,7 +229,7 @@ def PDE():
 
     for i in range(len(log_SA_PDE1)):
         ax1 = figure.add_subplot(2, num_col, i + 1)
-        plt.title("t=" + str(iterations / (num_col - 1) * i))
+        plt.title("t=" + str(iterations_sp / (num_col - 1) * i))
         plt.axis('off')
         ax1.imshow(log_SA_PDE1[i])
 
@@ -280,7 +280,7 @@ def PDE():
     plt.title("PSNR for Salt & Pepper Noise image with k = 0.1")
 
     ax3 = figure.add_subplot(3, 1, 3)
-    ax3.plot(x1, PSNR_SP, ".-")
+    ax3.plot(x1, PSNR_SP1, ".-")
     plt.xlabel("Iterations")
     plt.ylabel("PSNR/dB")
     plt.title("PSNR for Salt & Pepper Noise image with k = 0.2")
