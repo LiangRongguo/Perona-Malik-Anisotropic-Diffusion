@@ -1,8 +1,6 @@
 
 #  Perona-Malik Anisotropic Diffusion
 
- 
-![title_logo](https://github.com/LiangRongguo/atlantamovie/blob/master/README-RESOURCE/title_log.png)
 
 
 ## ECE 6560 Project V1
