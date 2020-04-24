@@ -27,7 +27,7 @@ This project is based on **Python 3.7** and below libraries:
 - imageio
 - math
 
-All libraries all the latest version by April 2020.
+All libraries are the latest versions by April 2020.
 
 Make sure you have the target image under "image" folder and its name stand with the parameter in "main.py".
 
